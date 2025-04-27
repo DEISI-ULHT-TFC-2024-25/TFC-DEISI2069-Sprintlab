@@ -1,0 +1,638 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Gantt Chart + Statistics</title>
+  <script src="https://res.cdn.office.net/teams-js/2.12.0/js/MicrosoftTeams.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background-color: #1b1d1f;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      margin: 0;
+      padding: 15px;
+    }
+
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #2b2d2f;
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .header-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-icon {
+      display: flex;
+      align-items: center;
+    }
+
+    .filter-icon svg {
+      height: 20px;
+      width: 20px;
+      fill: #aaa;
+    }
+
+    #viewMode {
+      background: #2b2d2f;
+      color: #fff;
+      border: 1px solid #6264A7;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    .gantt-grid {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  max-height: 600px; /* 👉 Limite vertical: 600px visível */
+  overflow-y: auto;  /* 👉 Scroll vertical ativado */
+  overflow-x: hidden; /* 👉 Sem scroll horizontal */
+  padding: 10px;
+  box-sizing: border-box;
+  background: #1b1d1f; /* 👉 Opcional: cor de fundo */
+  border-radius: 10px;
+}
+
+    .gantt-row {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      align-items: center;
+      height: 30px;
+      margin-bottom: 8px;
+    }
+
+    .gantt-label {
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 10px;
+      color: #ccc;
+    }
+
+    .gantt-bar-container {
+      position: relative;
+      background: #333;
+      height: 100%;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .bar {
+      position: absolute;
+      height: 100%;
+      background-color: #6264A7;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: #fff;
+      padding-left: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: all 0.5s ease;
+    }
+
+    .bar.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .bar:hover {
+      border: 2px solid #fff;
+    }
+
+    .no-tasks-message {
+      text-align: center;
+      font-size: 14px;
+      color: #aaa;
+      margin: 20px 0;
+    }
+
+    .section-title {
+      font-size: 20px;
+      margin: 50px 0 15px 0;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .charts-and-stats {
+    display: flex;
+    justify-content: center;
+    align-items: stretch; /* <- estica para ter mesma altura */
+    flex-wrap: wrap;
+    gap: 30px;
+    max-width: 1000px;
+    margin: 50px auto;
+    background: #2b2d2f;
+    padding: 30px;
+    border-radius: 15px;
+  }
+
+  .charts {
+  flex: 0 0 60%;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* <- centra horizontalmente */
+  min-width: 300px;
+}
+
+  .stats {
+    flex: 0 0 35%; /* <- ocupa 35% */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* <- centra estatísticas */
+    min-width: 250px;
+  }
+
+  .chart-container {
+  width: 100%; 
+  max-width: 450px; /* <- limita a largura máxima dos gráficos */
+  margin: 20px 0; /* <- espaçamento entre gráficos */
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none; /* <- tira limite de altura forçado */
+}
+
+    .stat {
+      background: #333;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #6264A7;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #ccc;
+    }
+    /* Scroll bonito para TODOS os elementos */
+    html, body, .gantt-grid, .charts-and-stats, .charts, .stats, .chart-container, textarea, select, .modal-content, .dropdown-options {
+      scrollbar-width: thin;
+      scrollbar-color: #8B88F8 transparent;
+    }
+
+    /* Scroll bonito para Webkit browsers (Chrome, Edge, etc.) */
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    .gantt-grid::-webkit-scrollbar,
+    .charts-and-stats::-webkit-scrollbar,
+    .charts::-webkit-scrollbar,
+    .stats::-webkit-scrollbar,
+    .chart-container::-webkit-scrollbar,
+    textarea::-webkit-scrollbar,
+    select::-webkit-scrollbar,
+    .modal-content::-webkit-scrollbar,
+    .dropdown-options::-webkit-scrollbar {
+      width: 6px;
+      height: 8px;
+    }
+
+    html::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb,
+    .gantt-grid::-webkit-scrollbar-thumb,
+    .charts-and-stats::-webkit-scrollbar-thumb,
+    .charts::-webkit-scrollbar-thumb,
+    .stats::-webkit-scrollbar-thumb,
+    .chart-container::-webkit-scrollbar-thumb,
+    textarea::-webkit-scrollbar-thumb,
+    select::-webkit-scrollbar-thumb,
+    .modal-content::-webkit-scrollbar-thumb,
+    .dropdown-options::-webkit-scrollbar-thumb {
+      background: #5a5a5a;
+      border-radius: 4px;
+    }
+
+    html:hover::-webkit-scrollbar-thumb,
+    body:hover::-webkit-scrollbar-thumb,
+    .gantt-grid:hover::-webkit-scrollbar-thumb,
+    .charts-and-stats:hover::-webkit-scrollbar-thumb,
+    .charts:hover::-webkit-scrollbar-thumb,
+    .stats:hover::-webkit-scrollbar-thumb,
+    .chart-container:hover::-webkit-scrollbar-thumb,
+    textarea:hover::-webkit-scrollbar-thumb,
+    select:hover::-webkit-scrollbar-thumb,
+    .modal-content:hover::-webkit-scrollbar-thumb,
+    .dropdown-options:hover::-webkit-scrollbar-thumb {
+      background: #8B88F8;
+    }
+
+    html::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track,
+    .gantt-grid::-webkit-scrollbar-track,
+    .charts-and-stats::-webkit-scrollbar-track,
+    .charts::-webkit-scrollbar-track,
+    .stats::-webkit-scrollbar-track,
+    .chart-container::-webkit-scrollbar-track,
+    textarea::-webkit-scrollbar-track,
+    select::-webkit-scrollbar-track,
+    .modal-content::-webkit-scrollbar-track,
+    .dropdown-options::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="header-bar">
+    <div class="header-title">Gantt Chart</div>
+    <div class="controls">
+      <span class="filter-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="#aaa">
+          <path d="M10 18h4v-2h-4v2zm-7-8v2h18v-2H3zm3-6v2h12V4H6z"/>
+        </svg>
+      </span>
+      <select id="viewMode"></select>
+    </div>
+  </div>
+
+  <div class="gantt-grid" id="ganttGrid"></div>
+
+  <div class="section-title">Issues Overview</div>
+
+  <div class="charts-and-stats">
+    <div class="charts">
+      <div class="chart-container">
+        <canvas id="statusChart"></canvas>
+      </div>
+      <div class="chart-container">
+        <canvas id="phaseChart"></canvas>
+      </div>
+    </div>
+    <div class="stats" id="statsPanel">
+      <!-- Estatísticas preenchidas por JS -->
+    </div>
+  </div>
+
+</body>
+</html>
+
+<script>
+  let allIssuesRaw = [];
+let allTasks = [];
+let projectWebUrl = ""; // <- Aqui nova variável global
+const viewModeSelect = document.getElementById('viewMode');
+
+async function loadData() {
+  try {
+    console.log("🔵 Starting loadData()");
+
+    await microsoftTeams.app.initialize();
+    console.log("✅ Teams SDK initialized");
+
+    const context = await microsoftTeams.app.getContext();
+    console.log("✅ Context loaded:", context);
+
+    const teamId = context.team.groupId;
+    const channelId = context.channel?.id || '';
+
+    const res = await fetch(`/gitlab-dashboards/gantt-data?teamId=${teamId}&channelId=${channelId}`);
+    console.log("✅ Fetch response:", res);
+
+    const result = await res.json();
+    console.log("✅ JSON parsed:", result);
+
+    allIssuesRaw = result.issues;
+    allTasks = allIssuesRaw.map(issue => {
+      if (!issue.endDate && !issue.closed_at) {
+        issue.endDate = new Date().toISOString();
+      } else if (!issue.endDate && issue.closed_at) {
+        issue.endDate = issue.closed_at;
+      }
+      return issue;
+    });
+
+    projectWebUrl = result.projectWebUrl || "";
+    console.log("✅ Project Web URL:", projectWebUrl);
+
+    prepareViewModes();
+    renderView();
+  } catch (error) {
+    console.error("🔴 Error initializing Teams SDK or fetching data:", error);
+    document.getElementById("ganttGrid").innerHTML = "<p class='no-tasks-message'>Error loading Gantt chart.</p>";
+  }
+}
+
+
+  
+function prepareViewModes() {
+  if (allTasks.length === 0) return;
+
+  const openTasks = allTasks.filter(task => !task.closed_at);
+
+  const milestonesSet = new Set();
+  openTasks.forEach(task => {
+    if (task.milestone && task.milestone.title) {
+      milestonesSet.add(task.milestone.title);
+    } else {
+      milestonesSet.add('No Milestone'); // caso não tenha milestone
+    }
+  });
+
+  const milestones = Array.from(milestonesSet).sort();
+
+  viewModeSelect.innerHTML = "";
+
+  // Adicionar "All Milestones"
+  const allOption = document.createElement('option');
+  allOption.value = "all";
+  allOption.textContent = "All Milestones";
+  viewModeSelect.appendChild(allOption);
+
+  milestones.forEach(milestone => {
+    const option = document.createElement('option');
+    option.value = milestone;
+    option.textContent = milestone;
+    viewModeSelect.appendChild(option);
+  });
+}
+
+
+
+  
+function renderView() {
+  const ganttGrid = document.getElementById("ganttGrid");
+  ganttGrid.innerHTML = "";
+
+  const viewMode = viewModeSelect.value;
+
+  // Só abertas
+  const openTasks = allTasks.filter(task => !task.closed_at);
+
+  let tasksToRender = [];
+
+  if (viewMode === "all") {
+    tasksToRender = openTasks;
+  } else {
+    tasksToRender = openTasks.filter(task => {
+      if (task.milestone && task.milestone.title) {
+        return task.milestone.title === viewMode;
+      }
+      return viewMode === 'No Milestone'; // caso sem milestone
+    });
+  }
+
+  if (tasksToRender.length === 0) {
+    ganttGrid.innerHTML = "<p class='no-tasks-message'>No open issues for this milestone.</p>";
+    return;
+  }
+
+  const allEndDates = tasksToRender.map(task => new Date(task.endDate));
+  const startView = new Date(Math.min(...allEndDates.map(d => d.getTime())));
+  const endView = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+
+  renderGantt(tasksToRender, startView, endView);
+  generateChartsAndStats(startView, endView);
+}
+
+  
+function renderGantt(tasks, startView, endView) {
+  const ganttGrid = document.getElementById("ganttGrid");
+  ganttGrid.innerHTML = "";
+
+  const openTasks = tasks.filter(task => !task.closed_at);
+  openTasks.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
+
+  const startViewTime = startView.getTime();
+  const endViewTime = endView.getTime();
+  const totalViewDuration = endViewTime - startViewTime;
+
+  openTasks.forEach(task => {
+    const taskEnd = new Date(task.endDate);
+    if (taskEnd < startView || taskEnd > endView) return;
+
+    const row = document.createElement("div");
+    row.className = "gantt-row";
+
+    const label = document.createElement("div");
+    label.className = "gantt-label";
+
+    // ✅ Cria link dinâmico para cada issue
+    const link = document.createElement("a");
+    if (projectWebUrl) {
+      link.href = `${projectWebUrl}/-/issues/${task.iid}`;
+    } else {
+      link.href = "#"; // fallback caso projectWebUrl não tenha carregado
+    }
+    link.target = "_blank";
+    link.textContent = task.name;
+    link.style.color = "#ccc";
+    link.style.textDecoration = "underline";
+    link.style.fontWeight = "bold";
+
+    label.appendChild(link);
+
+    const barContainer = document.createElement("div");
+    barContainer.className = "gantt-bar-container";
+
+    const miniBar = document.createElement("div");
+    miniBar.style.position = "absolute";
+    miniBar.style.width = "30px";
+    miniBar.style.height = "10px";
+    miniBar.style.backgroundColor = "#6264A7";
+    miniBar.style.borderRadius = "3px";
+    miniBar.style.top = "50%";
+    miniBar.style.transform = "translateY(-50%)";
+    miniBar.style.transition = "all 0.5s ease";
+    miniBar.style.opacity = "0";
+
+    const taskEndTime = taskEnd.getTime();
+    const positionPercent = ((taskEndTime - startViewTime) / totalViewDuration) * 100;
+    miniBar.style.left = `calc(${positionPercent}% - 15px)`;
+
+    miniBar.title = `Task: ${task.name}\nEnd: ${taskEnd.toLocaleDateString('en-GB')}`;
+
+    barContainer.appendChild(miniBar);
+    row.appendChild(label);
+    row.appendChild(barContainer);
+    ganttGrid.appendChild(row);
+
+    setTimeout(() => {
+      miniBar.style.opacity = "1";
+    }, 50);
+  });
+}
+
+
+
+  
+function generateChartsAndStats(startView, endView) {
+  const startViewTime = startView.getTime();
+  const endViewTime = endView.getTime();
+
+  const issuesInView = allIssuesRaw.filter(issue => {
+    if (!issue.endDate) return false;
+    const end = new Date(issue.endDate).getTime();
+    return end >= startViewTime && end <= endViewTime;
+  });
+
+  const openIssues = issuesInView.filter(issue => !issue.closed_at);
+  const closedIssues = issuesInView.filter(issue => issue.closed_at);
+
+  document.getElementById('statusChart').remove();
+  document.getElementById('phaseChart').remove();
+
+  const chartsContainer = document.querySelector('.charts');
+  chartsContainer.innerHTML = `
+    <div class="chart-container"><canvas id="statusChart"></canvas></div>
+    <div class="chart-container"><canvas id="phaseChart"></canvas></div>
+  `;
+
+  // ✅ Doughnut status chart (Open x Closed)
+  new Chart(document.getElementById('statusChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Open', 'Closed'],
+      datasets: [{
+        data: [openIssues.length, closedIssues.length],
+        backgroundColor: ['#6264A7', '#555'],
+        borderColor: '#1b1d1f',
+        borderWidth: 2
+      }]
+    },
+    options: { 
+      plugins: { 
+        legend: { labels: { color: '#fff' } } 
+      } 
+    }
+  });
+
+  // ✅ Bar chart agrupado por Milestones
+  const openMilestoneCounts = {};
+  const closedMilestoneCounts = {};
+
+  issuesInView.forEach(issue => {
+    const milestone = issue.milestone ? issue.milestone.title : 'No Milestone'; // 👉 corrige!
+
+    if (!issue.closed_at) {
+      openMilestoneCounts[milestone] = (openMilestoneCounts[milestone] || 0) + 1;
+    } else {
+      closedMilestoneCounts[milestone] = (closedMilestoneCounts[milestone] || 0) + 1;
+    }
+  });
+
+  const milestones = Array.from(new Set([...Object.keys(openMilestoneCounts), ...Object.keys(closedMilestoneCounts)])).sort();
+
+  new Chart(document.getElementById('phaseChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: milestones,
+      datasets: [
+        {
+          label: 'Open Issues',
+          data: milestones.map(m => openMilestoneCounts[m] || 0),
+          backgroundColor: '#6264A7'
+        },
+        {
+          label: 'Closed Issues',
+          data: milestones.map(m => closedMilestoneCounts[m] || 0),
+          backgroundColor: '#555'
+        }
+      ]
+    },
+    options: {
+      scales: {
+        x: { 
+          ticks: { color: '#fff' },
+          title: { display: true, text: 'Milestone', color: '#fff' }
+        },
+        y: { 
+          beginAtZero: true,
+          ticks: { color: '#fff', stepSize: 1 },
+          title: { display: true, text: 'Number of Issues', color: '#fff' }
+        }
+      },
+      plugins: { 
+        legend: { labels: { color: '#fff' } },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.raw}`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  generateAdvancedStats(issuesInView);
+}
+
+function generateAdvancedStats(issuesInView) {
+  const advancedStatsPanel = document.getElementById('statsPanel');
+
+  // Agora usamos allIssuesRaw para ver tudo (não filtrado pela vista)
+  const openIssues = allIssuesRaw.filter(issue => !issue.closed_at);
+  const closedIssues = allIssuesRaw.filter(issue => issue.closed_at);
+  const totalIssues = allIssuesRaw.length;
+
+  // ➡️ Nova estatística: Issues sem Milestone
+  const issuesWithoutMilestone = allIssuesRaw.filter(issue => !issue.milestone || !issue.milestone.title).length;
+
+  advancedStatsPanel.innerHTML = `
+    <div class="stat">
+      <div class="stat-value">${openIssues.length}</div>
+      <div class="stat-label">Open Issues</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${closedIssues.length}</div>
+      <div class="stat-label">Closed Issues</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${totalIssues}</div>
+      <div class="stat-label">Total Issues</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${issuesWithoutMilestone}</div>
+      <div class="stat-label">Issues without Milestone</div>
+    </div>
+  `;
+}
+
+  viewModeSelect.addEventListener('change', renderView);
+  loadData();
+</script>
+
+  
+  
+</body>
+</html>
