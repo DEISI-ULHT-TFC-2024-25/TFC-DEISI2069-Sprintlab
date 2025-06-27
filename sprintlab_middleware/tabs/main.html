@@ -17,7 +17,7 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      overflow: hidden; /* impede scroll */
+      overflow: hidden; 
     }
 
     .tab-bar {
@@ -49,7 +49,7 @@
 
     iframe {
       width: 100%;
-      height: calc(100% - 50px); /* ocupa tudo menos a tab-bar */
+      height: calc(100% - 50px); 
       border: none;
       background-color: #1b1d1f;
       display: block;
@@ -82,9 +82,9 @@
     .tab {
       padding: 0 16px;
       display: flex;
-      align-items: center;       /* <-- Centraliza verticalmente */
-      justify-content: center;   /* <-- Centraliza horizontalmente o conteúdo interno */
-      height: 100%;              /* <-- Garante altura total da caixa da tab */
+      align-items: center;              
+      justify-content: center;   
+      height: 100%;              
       cursor: pointer;
       color: #ccc;
       font-weight: 500;
@@ -127,42 +127,42 @@
       microsoftTeams.app.getContext().then(async context => {
         const teamId = context.team.groupId;
         const channelId = context.channel.id;
-  
+
         try {
-          // 1. Vai buscar o projeto da BD
           const configRes = await fetch(`/gitlab-issues/project-config?teamId=${teamId}&channelId=${channelId}`);
           const config = await configRes.json();
-  
-          if (!config.gitlab_project_id || !config.gitlab_token) {
+
+          if (!config.gitlab_project_id || !config.gitlab_token || !config.gitlab_host) {
             document.getElementById("project-name").textContent = "Projeto não configurado";
             return;
           }
-  
-          // 2. Vai buscar o nome do projeto ao GitLab diretamente
-          const gitlabRes = await fetch(`https://gitlab.com/api/v4/projects/${config.gitlab_project_id}`, {
+
+          const baseUrl = `https://${config.gitlab_host}`;
+
+          const gitlabRes = await fetch(`${baseUrl}/api/v4/projects/${config.gitlab_project_id}`, {
             headers: { "Private-Token": config.gitlab_token }
           });
-  
+
           if (!gitlabRes.ok) {
             throw new Error("Erro ao buscar projeto do GitLab");
           }
-  
+
           const projectData = await gitlabRes.json();
           document.getElementById("project-name").textContent = projectData.name || "Projeto sem nome";
-  
+
         } catch (error) {
           console.error("Erro ao buscar nome do projeto:", error);
           document.getElementById("project-name").textContent = "Erro ao carregar projeto";
         }
       });
     });
-  
+
     function switchTab(tab) {
       const iframe = document.getElementById("tab-frame");
       const tabs = document.querySelectorAll(".tab");
-  
+
       tabs.forEach(t => t.classList.remove("active"));
-  
+
       if (tab === "board") {
         iframe.src = "board.html";
         tabs[0].classList.add("active");
@@ -171,7 +171,6 @@
         tabs[1].classList.add("active");
       }
     }
-  </script>  
-  
+  </script>
 </body>
 </html>

@@ -45,7 +45,7 @@
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      max-height: calc(100vh - 70px); /* Limita a altura da coluna para caber toda na janela */
+      max-height: calc(100vh - 70px); 
     } 
     .column h3 {
       text-align: center;
@@ -57,7 +57,7 @@
       overflow-y: auto;
       padding: 10px;
       flex-grow: 1;
-      min-height: 0; /* Muito importante para o scroll funcionar corretamente dentro do flex */
+      min-height: 0; 
     } 
     .issue {
       background-color: #1b1d1f;
@@ -148,7 +148,7 @@
       white-space: nowrap;
     }
   
-    /* 🔄 Scrollbar discreto estilo GitLab */
+    /* Scrollbar estilo GitLab */
     .board::-webkit-scrollbar,
     .column-content::-webkit-scrollbar {
       height: 8px;
@@ -208,25 +208,25 @@
       background: rgba(0,0,0,0.5);
       display: flex;
       justify-content: center;
-      align-items: center; /* ⬅️ centralizar verticalmente */
+      align-items: center; 
       padding: 0 16px;
       box-sizing: border-box;
       overflow-y: auto;
     }
 
     .modal-content {
-      margin-top: 60px; /* opcional: menos espaço acima */
+      margin-top: 60px; 
       background: #2e2f31;
       padding: 24px 30px;
       border-radius: 10px;
-      width: 700px; /* ⬅️ aumenta o tamanho horizontalmente */
-      max-width: 95vw; /* manter responsive */
-      max-height: 90vh; /* ⬅️ permite mais altura */
-      overflow-y: visible; /* ⬅️ IMPORTANTE: tira o scroll vertical */
+      width: 700px; 
+      max-width: 95vw; 
+      max-height: 90vh; 
+      overflow-y: visible; 
       box-shadow: 0 8px 22px rgba(0,0,0,0.45);
       display: flex;
       flex-direction: column;
-      gap: 6px; /* dar espaçamento maior entre os campos */
+      gap: 6px; 
       margin-bottom: 8px;
     }
 
@@ -296,7 +296,7 @@
       background: transparent;
     }
 
-    /* Firefox */
+   
     textarea,
     .modal-content {
       scrollbar-width: thin;
@@ -371,7 +371,7 @@
     .dropdown-options::-webkit-scrollbar-track {
       background: transparent;
     }
-    /* Firefox */
+    
     .dropdown-options {
       scrollbar-width: thin;
       scrollbar-color: #8B88F8 transparent;
@@ -380,10 +380,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 10px;
+      padding: 6px 20px 6px 10px; 
       cursor: pointer;
       font-size: 14px;
       color: white;
+      gap: 12px; 
     }
 
     .label-option:hover {
@@ -395,19 +396,64 @@
       font-weight: bold;
     }
 
+    .filter-item {
+      padding: 6px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .filter-item:hover {
+      background-color: #3a3b3d;
+    }
+    
+
+    #filter-labels, #filter-milestones, #filter-assignees {
+      flex: 1;
+      min-width: 200px;
+      max-width: 280px; 
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+
+    #filter-labels::-webkit-scrollbar,
+    #filter-milestones::-webkit-scrollbar,
+    #filter-assignees::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #filter-labels::-webkit-scrollbar-thumb,
+    #filter-milestones::-webkit-scrollbar-thumb,
+    #filter-assignees::-webkit-scrollbar-thumb {
+      background-color: #5a5a5a;
+      border-radius: 4px;
+    }
+
+    #filter-labels:hover::-webkit-scrollbar-thumb,
+    #filter-milestones:hover::-webkit-scrollbar-thumb,
+    #filter-assignees:hover::-webkit-scrollbar-thumb {
+      background-color: var(--teams-purple);
+    }
+
+    .filter-item {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+
     /* Botão moderno refinado */
     .modern-save {
       background: #2d2f33;
       border: 1px solid #444;
       color: white;
-      padding: 10px 18px; /* 🔥 aumenta padding horizontal */
+      padding: 10px 18px; 
       border-radius: 5px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      justify-content: center; /* 🔥 texto mais centralizado */
+      justify-content: center; 
       gap: 6px;
       transition: all 0.2s ease;
     }
@@ -417,8 +463,38 @@
     }
 
     .modern-save:hover {
-      background: #7a74f5; /* 🔥 roxo um bocadinho mais escuro */
+      background: #7a74f5; 
       border-color: #7a74f5;
+    }
+
+    .circle-checkbox {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #aaa;
+      border-radius: 50%;
+      display: inline-block;
+      position: relative;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    .circle-checkbox:checked {
+      border-color: var(--teams-purple);
+      background-color: var(--teams-purple);
+    }
+
+    .circle-checkbox:checked::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: white;
     }
 
   </style> 
@@ -489,7 +565,7 @@
         </div>
       </div>      
   
-      <!-- 🔒 Alerta para utilizadores sem permissão -->
+      <!-- Alerta para utilizadores sem permissão -->
       <div id="edit-warning" style="display:none; color: #ff8080; font-size: 14px; margin-bottom: 12px;">
         Não tem permissões para editar esta issue.
       </div>
@@ -571,24 +647,44 @@
           position: absolute;
           top: 110%;
           left: 0;
+          width: 820px;
           background: #2e2f31;
           border: 1px solid var(--teams-purple);
           border-radius: 6px;
           z-index: 100;
-          min-width: 180px;
-          max-width: 280px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-          overflow-x: hidden;
-        "></div>
+          padding: 20px;
+        ">
+          <div style="display: flex; gap: 20px; justify-content: space-between;">            
+            <div id="filter-labels" style="flex: 1; max-height: 260px; overflow-y: auto;">
+              <strong>Labels</strong>
+              <div id="filter-labels-list"></div>
+            </div>
+            <div id="filter-milestones" style="flex: 1; max-height: 260px; overflow-y: auto;">
+              <strong>Milestones</strong>
+              <div id="filter-milestones-list"></div>
+            </div>
+            <div id="filter-assignees" style="flex: 1; max-height: 260px; overflow-y: auto;">
+              <strong>Assignees</strong>
+              <div id="filter-assignees-list"></div>
+            </div>
+          </div>
+            <div style="margin-top: 20px; text-align: right;">
+              <button id="clear-filters-button" class="modern-save" style="padding: 6px 12px; font-size: 13px;">
+                Clear Filters
+              </button>
+            </div>
+        </div>
       </div>
     </div>
   
     <button id="create-issue-button" class="modern-save" style="padding: 8px 14px; font-size: 14px;">
       <i class="fas fa-plus"></i> Create Issue
     </button>
-  </div> 
-    
+  </div>
+  
   <div class="board" id="board">Select a board to get started...</div>
+                                                                                                                                  
 
   <script>
     let teamId, channelId;
@@ -613,9 +709,7 @@
           console.error("[Sprintlab] Erro ao verificar o role via backend:", err);
         }
 
-        await carregarBoards();
-        await carregarLabels();
-        await carregarLabelsDropdown();
+        await carregarBoards();                
       });
     });
 
@@ -624,54 +718,112 @@
         const configRes = await fetch(`/gitlab-issues/project-config?teamId=${teamId}&channelId=${channelId}`);
         const config = await configRes.json();
 
-        const labelsRes = await fetch(`/gitlab-issues/labels?projectId=${config.gitlab_project_id}&token=${config.gitlab_token}`);
-        const labels = await labelsRes.json();
+        const metaRes = await fetch(`/gitlab-issues/project-metadata?teamId=${teamId}&channelId=${channelId}`);
+        const { labels, milestones, assignees } = await metaRes.json();
 
-        const dropdown = document.getElementById("label-dropdown");
-        dropdown.innerHTML = "";
+        //  Renderiza os títulos e contentores internos
+        document.getElementById("filter-labels").innerHTML = `
+          <strong style="display: block; margin-bottom: 4px;">Labels</strong>
+          <div id="filter-labels-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        `;
+        document.getElementById("filter-milestones").innerHTML = `
+          <strong style="display: block; margin-bottom: 4px;">Milestones</strong>
+          <div id="filter-milestones-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        `;
+        document.getElementById("filter-assignees").innerHTML = `
+          <strong style="display: block; margin-bottom: 4px;">Assignees</strong>
+          <div id="filter-assignees-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        `;
 
-        labels.forEach(label => {
-          const item = document.createElement("div");
-          item.textContent = label.name.length > 30 ? label.name.slice(0, 30) + "…" : label.name;
-          item.title = label.name; // mostra tooltip completo ao passar o rato
-          item.style.cssText = `
-            padding: 8px 12px;
-            cursor: pointer;
-            color: white;
-            font-size: 14px;
-          `;
-          item.addEventListener("mouseenter", () => item.style.background = "#3a3b3d");
-          item.addEventListener("mouseleave", () => item.style.background = "transparent");
-          item.addEventListener("click", () => {
-            dropdown.style.display = "none";
-            filtrarIssuesPorLabel(label.name);
+        const labelsDiv = document.getElementById("filter-labels-list");
+        const milestonesDiv = document.getElementById("filter-milestones-list");
+        const assigneesDiv = document.getElementById("filter-assignees-list");
+
+        const selectedFilters = new Set();
+
+        // Checkbox comum
+        function createCheckbox(value, onChangeCallback) {
+          const wrapper = document.createElement("label");
+          wrapper.style.display = "flex";
+          wrapper.style.justifyContent = "space-between";
+          wrapper.style.alignItems = "center";
+          wrapper.style.fontSize = "14px";
+          wrapper.style.color = "white";
+          wrapper.style.paddingRight = "6px"; // espaço extra para afastar do scroll
+
+          const span = document.createElement("span");
+          span.textContent = value;
+
+          const input = document.createElement("input");
+          input.type = "checkbox";
+          input.className = "circle-checkbox";
+          input.dataset.value = value;
+          input.checked = selectedFilters.has(value);
+
+          input.addEventListener("change", () => {
+            if (input.checked) {
+              selectedFilters.add(value);
+            } else {
+              selectedFilters.delete(value);
+            }
+            aplicarFiltrosSelecionados();
           });
 
-          dropdown.appendChild(item);
+          wrapper.appendChild(span);
+          wrapper.appendChild(input);
+          return wrapper;
+        }
+
+        function aplicarFiltrosSelecionados() {
+          const allCards = document.querySelectorAll(".issue");
+
+          allCards.forEach(card => {
+            const cardLabels = JSON.parse(card.dataset.issueLabels || "[]").map(l => l.toLowerCase());
+            const cardText = card.querySelector(".meta")?.textContent.toLowerCase() || "";
+
+            const match = Array.from(selectedFilters).every(filtro => {
+              const f = filtro.toLowerCase();
+              return cardLabels.includes(f) || cardText.includes(f);
+            });
+
+            card.style.display = match ? "block" : "none";
+          });
+        }
+
+        labels.forEach(label => {
+          const checkbox = createCheckbox(label.name, aplicarFiltrosSelecionados);
+          labelsDiv.appendChild(checkbox);
         });
 
-        // Opção para limpar o filtro
-        const clear = document.createElement("div");
-        clear.textContent = "Limpar filtro";
-        clear.style.cssText = `
-          padding: 8px 12px;
-          cursor: pointer;
-          color: #bbb;
-          font-size: 13px;
-          border-top: 1px solid #444;
-        `;
-        clear.addEventListener("mouseenter", () => clear.style.background = "#3a3b3d");
-        clear.addEventListener("mouseleave", () => clear.style.background = "transparent");
-        clear.addEventListener("click", () => {
-          dropdown.style.display = "none";
-          filtrarIssuesPorLabel("");
+        milestones.forEach(ms => {
+          const checkbox = createCheckbox(ms.title, aplicarFiltrosSelecionados);
+          milestonesDiv.appendChild(checkbox);
         });
 
-        dropdown.appendChild(clear);
+        assignees.forEach(user => {
+          const checkbox = createCheckbox(user.name, aplicarFiltrosSelecionados);
+          assigneesDiv.appendChild(checkbox);
+        });
+
+        document.getElementById("clear-filters-button").addEventListener("click", () => {
+          selectedFilters.clear();
+
+          document.querySelectorAll(".circle-checkbox").forEach(cb => {
+            cb.checked = false;
+          });
+
+          // Mostra todos os cartões
+          document.querySelectorAll(".issue").forEach(card => {
+            card.style.display = "block";
+          });
+        });
       } catch (err) {
-        console.error("Erro ao carregar dropdown de labels:", err);
+        console.error("Erro ao carregar filtros:", err);
       }
     }
+
+
+
 
     const storageKey = `lastBoard_${teamId}_${channelId}`;
 
@@ -694,7 +846,7 @@
         selector.disabled = false;
         selector.addEventListener("change", (e) => {
           const selectedBoardId = e.target.value;
-          localStorage.setItem(storageKey, selectedBoardId); // 🔹 Guarda a escolha
+          localStorage.setItem(storageKey, selectedBoardId); 
           carregarIssues(selectedBoardId);
         });
 
@@ -820,7 +972,7 @@
 
                 labelsContainer.appendChild(option);
               });
-              // Atualiza o resumo no topo
+              
               const selected = labels.filter(l => issue.labels.includes(l.name));
               document.getElementById("selected-labels").textContent = selected.length
                 ? `${selected.length} label${selected.length > 1 ? "s" : ""}`
@@ -909,7 +1061,7 @@
 
               
 
-              // 🔒 Esconde o botão de guardar se o user for membro
+              
               const saveBtn = document.getElementById("save-edit");
               const warning = document.getElementById("edit-warning");
 
@@ -924,11 +1076,11 @@
               modal.dataset.issueIid = issue.iid;
               modal.dataset.projectId = data.project_id;
 
-              modal.dataset.projectWebUrl = data.project_web_url; // guarda o web_url no modal
+              modal.dataset.projectWebUrl = data.project_web_url; 
               const openGitlabBtn = document.getElementById("open-gitlab");
               openGitlabBtn.href = `${data.project_web_url}/-/issues/${issue.iid}`;
 
-              modal.dataset.currentState = issue.state; // guarda o estado inicial no modal                          
+              modal.dataset.currentState = issue.state;                          
 
               atualizarBotaoEstadoModal(issue.state);
 
@@ -996,18 +1148,16 @@
               }
             }
 
-            // Agora sim ⬇️ depois de calcular newState
+            
             card.dataset.issueState = newState; 
             console.error("NOVO STATE:", newState);
-            // NOVO: Atualiza o botão de estado se o modal estiver aberto na issue certa
+            
             if (document.getElementById("edit-modal").style.display === "flex" && document.getElementById("edit-modal").dataset.issueIid == issueIid) {
                 atualizarBotaoEstadoModal(newState);
             }
 
-            // Atualiza visualmente a posição
             col.appendChild(card);
 
-            // Atualiza diretamente no GitLab
             fetch(`/gitlab-issues/${issueIid}?teamId=${teamId}&channelId=${channelId}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
@@ -1048,7 +1198,6 @@
         .map(opt => opt.dataset.value);
       const milestone_id = document.getElementById("edit-milestone").value || null;
       
-      // 👇 Aqui vais buscar o estado correto do botão
       const state = document.getElementById("toggle-status")?.dataset.state || "opened"; // pega o estado atual
 
       try {
@@ -1066,7 +1215,7 @@
             assignee_id: assignee_id ? Number(assignee_id) : null,
             labels: labelValues,
             milestone_id: milestone_id ? Number(milestone_id) : null,
-            state_event: state === "closed" ? "close" : "reopen" // 🔥 importante!!
+            state_event: state === "closed" ? "close" : "reopen" 
           })
         });
 
@@ -1086,7 +1235,7 @@
       }
     });
 
-    // 🔁 Apenas muda visualmente (sem chamar backend)
+    // Apenas muda visualmente (sem chamar backend)
     document.getElementById("toggle-status").addEventListener("click", () => {
       const button = document.getElementById("toggle-status");
       const current = button.dataset.state || "opened";
@@ -1103,12 +1252,12 @@
       if (state === "closed") {
         text.textContent = "Closed";
         icon.className = "fas fa-toggle-off";
-        icon.style.color = "#d50000"; // vermelho
+        icon.style.color = "#d50000"; 
         button.dataset.state = "closed";
       } else {
         text.textContent = "Open";
         icon.className = "fas fa-toggle-on";
-        icon.style.color = "#00c853"; // verde
+        icon.style.color = "#00c853"; 
         button.dataset.state = "opened";
       }
     }
@@ -1218,13 +1367,11 @@
 
         container.innerHTML = "";
 
-        // Mostra sempre o título
         document.getElementById("related-merge-requests-section").style.display = "block";
 
         const projectWebUrl = document.getElementById("edit-modal").dataset.projectWebUrl;
 
         if (mrs.length === 0) {
-          // 🔥 Mostra mensagem caso não existam MRs
           const noMr = document.createElement("div");
           noMr.textContent = "No Related Merge Requests";
           noMr.style.color = "#bbb";
@@ -1239,8 +1386,6 @@
           mrDiv.style.alignItems = "center";
           mrDiv.style.gap = "8px";
           mrDiv.style.fontSize = "14px";
-
-          // 🔥 Faz o #id ser clicável
           mrDiv.innerHTML = `
             <a href="${projectWebUrl}/-/merge_requests/${mr.iid}" target="_blank" style="color: var(--teams-purple); font-weight: bold; text-decoration: underline;">#${mr.iid}</a>
             <span>${mr.title}</span>
@@ -1261,24 +1406,44 @@
       }
     }
 
-
-    function filtrarIssuesPorLabel(labelName) {
-      const allCards = document.querySelectorAll(".issue");
-      allCards.forEach(card => {
+    function filtrarIssuesPorLabel(name, isChecked) {
+      const cards = document.querySelectorAll(".issue");
+      cards.forEach(card => {
         const labels = JSON.parse(card.dataset.issueLabels);
-        if (!labelName || labels.includes(labelName)) {
-          card.style.display = "block";
-        } else {
-          card.style.display = "none";
-        }
+        const match = labels.includes(name);
+        if (isChecked && !match) card.style.display = "none";
+        if (!isChecked) card.style.display = "";
       });
     }
 
-    document.getElementById("filter-icon").addEventListener("click", () => {
+    function filtrarIssuesPorMilestone(name, isChecked) {
+      const cards = document.querySelectorAll(".issue");
+      cards.forEach(card => {
+        const milestone = card.querySelector(".meta")?.textContent.includes(name);
+        if (isChecked && !milestone) card.style.display = "none";
+        if (!isChecked) card.style.display = "";
+      });
+    }
+
+    function filtrarIssuesPorAssignee(name, isChecked) {
+      const cards = document.querySelectorAll(".issue");
+      cards.forEach(card => {
+        const assignee = card.querySelector(".meta")?.textContent.includes(name);
+        if (isChecked && !assignee) card.style.display = "none";
+        if (!isChecked) card.style.display = "";
+      });
+    }
+
+    document.getElementById("filter-icon").addEventListener("click", async () => {
       const dropdown = document.getElementById("label-dropdown");
-      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+      if (dropdown.style.display === "block") {
+        dropdown.style.display = "none";
+      } else {
+        await carregarLabelsDropdown();  
+        dropdown.style.display = "block";
+      }
     });
-    // Novo botão Create
+
     document.getElementById("create-issue-button").addEventListener("click", async () => {
       const modal = document.getElementById("create-modal");
       modal.style.display = "flex";
@@ -1398,7 +1563,7 @@
         });
 
         if (res.ok) {
-          alert("✅ Issue criada com sucesso!");
+          alert("Issue criada com sucesso!");
           document.getElementById("create-modal").style.display = "none";
           const boardId = document.getElementById("board-selector").value;
           await carregarIssues(boardId);
@@ -1407,7 +1572,7 @@
           alert("Erro ao criar issue: " + data.error);
         }
       } catch (err) {
-        console.error("❌ Erro ao criar issue:", err);
+        console.error("Erro ao criar issue:", err);
         alert("Erro ao criar issue.");
       }
     });

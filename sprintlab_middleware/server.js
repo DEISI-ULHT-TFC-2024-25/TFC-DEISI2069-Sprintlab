@@ -19,88 +19,77 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-
-  
-// Rotas
-app.use("/webhooks", webhooks);
-// ➕ Servir os ficheiros estáticos das tabs
-
-/*****************************Tabs****************************************************/
-
 app.use("/tabs", express.static(path.join(__dirname, "tabs")));
-
-// 🔧 Servir página de configuração
 app.get("/tabs/config", (req, res) => {
   res.sendFile(path.join(__dirname, "tabs", "config.html"));
 });
-app.use("/gitlab-dashboards", gitlabDashboardRoutes);
 
+app.use("/webhooks", webhooks);
+app.use("/gitlab-dashboards", gitlabDashboardRoutes);
 const teamsRoutes = require("./routes/teams");
 app.use("/teams", teamsRoutes);
+const gitlabRoutes = require("./routes/gitlab");
+app.use("/gitlab-issues", gitlabRoutes);
 
-
-// 🛠️ Endpoint para validar e/ou guardar configurações
+// Guardar configuração
 app.post("/configure-project", async (req, res) => {
-  const { teamId, channelId, projectName, projectId, token } = req.body;
+  const { teamId, channelId, host, projectId, token } = req.body;
   console.log("📥 Dados recebidos:", req.body);
 
-  if (!teamId || !channelId || !projectName || !projectId || !token) {
+  if (!teamId || !channelId || !host || !projectId || !token) {
     return res.status(400).json({ message: "Todos os campos são obrigatórios." });
   }
 
   try {
-    // 🔐 Validar token e acesso ao projeto GitLab
-    try {
-      const url = `https://gitlab.com/api/v4/projects/${encodeURIComponent(projectId)}/issues`;
+    const baseUrl = `https://${host}`;
+    const url = `${baseUrl}/api/v4/projects/${encodeURIComponent(projectId)}/issues`;
 
+    // Validação do token
+    try {
       const gitlabResponse = await axios.get(url, {
         headers: { "PRIVATE-TOKEN": token }
       });
 
       if (gitlabResponse.status !== 200) {
-        return res.status(403).json({ message: "Token inválido ou sem acesso ao projeto GitLab." });
+        return res.status(403).json({ message: "Token inserted does not have access to the GitLab project" });
       }
     } catch (validationError) {
       const status = validationError.response?.status;
       const message = validationError.response?.data?.message || validationError.message;
 
-      console.error("🔐 Erro GitLab:", status, message);
-      return res.status(403).json({ message: "Token inválido ou sem acesso ao projeto GitLab." });
+      console.error("Erro GitLab:", status, message);
+      return res.status(403).json({ message: "Token inserted does not have access to the GitLab project" });
     }
 
-    // 🧠 Verificar se já existe configuração EXATA
+    // Verificar duplicados
     const existing = await pool.query(
       `SELECT * FROM projects_config 
-       WHERE teams_team_id = $1 AND teams_channel_id = $2 AND gitlab_project_id = $3`,
-      [teamId, channelId, projectId]
+       WHERE teams_team_id = $1 AND teams_channel_id = $2 AND gitlab_project_id = $3 AND gitlab_token = $4 AND gitlab_host = $5`,
+      [teamId, channelId, projectId, token, host]
     );
 
     if (existing.rowCount > 0) {
-      console.log("ℹ️ Já existe esta configuração — não será duplicada.");
-      return res.status(200).json({ message: "✅ Ligação ao projeto GitLab validada com sucesso!" });
+      console.log("ℹJá existe esta configuração exata — não será duplicada.");
+      return res.status(200).json({ message: "Connection has been established with success!" });
     }
 
-    // ✅ Inserir nova configuração
+    // Inserir nova configuração
     await pool.query(
       `INSERT INTO projects_config (
-         teams_team_id, teams_channel_id, gitlab_project_name, gitlab_project_id, gitlab_token
+         teams_team_id, teams_channel_id, gitlab_host, gitlab_project_id, gitlab_token
        ) VALUES ($1, $2, $3, $4, $5)`,
-      [teamId, channelId, projectName, projectId, token]
+      [teamId, channelId, host, projectId, token]
     );
 
-    res.status(200).json({ message: "✅ Nova configuração guardada com sucesso!" });
+    res.status(200).json({ message: "New configuration saved with success!" });
 
   } catch (err) {
-    console.error("💥 ERRO DETALHADO:", err.message);
+    console.error("ERRO DETALHADO:", err.message);
     res.status(500).json({ message: "Erro interno ao guardar a configuração." });
   }
 });
 
-/*****************************Tabs****************************************************/
-
-const gitlabRoutes = require("./routes/gitlab");
-app.use("/gitlab-issues", gitlabRoutes);
-
+// Endpoint auxiliar para buscar boards do GitLab (sem rota dedicada)
 app.get("/gitlab-boards", async (req, res) => {
   const { teamId, channelId } = req.query;
 
@@ -110,8 +99,9 @@ app.get("/gitlab-boards", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT gitlab_project_id, gitlab_token FROM projects_config
-       WHERE teams_team_id = $1 AND teams_channel_id = $2`,
+      `SELECT gitlab_project_id, gitlab_token, gitlab_host FROM projects_config
+       WHERE teams_team_id = $1 AND teams_channel_id = $2
+       ORDER BY updated_at DESC`,
       [teamId, channelId]
     );
 
@@ -119,23 +109,23 @@ app.get("/gitlab-boards", async (req, res) => {
       return res.status(404).json({ error: "Projeto não configurado para este canal." });
     }
 
-    const { gitlab_project_id, gitlab_token } = result.rows[0];
+    const { gitlab_project_id, gitlab_token, gitlab_host } = result.rows[0];
+    const baseUrl = `https://${gitlab_host}`;
 
     const response = await axios.get(
-      `https://gitlab.com/api/v4/projects/${encodeURIComponent(gitlab_project_id)}/boards`,
+      `${baseUrl}/api/v4/projects/${encodeURIComponent(gitlab_project_id)}/boards`,
       { headers: { "PRIVATE-TOKEN": gitlab_token } }
     );
 
     res.json(response.data);
 
   } catch (err) {
-    console.error("❌ Erro ao obter boards:", err.response?.data || err.message);
+    console.error("Erro ao obter boards:", err.response?.data || err.message);
     res.status(500).json({ error: "Erro ao obter boards do GitLab." });
   }
 });
 
-
-
+// Start
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor online na porta ${PORT}`);
 });
