@@ -38,7 +38,7 @@ Todas as ações realizadas na board refletem-se diretamente no projeto GitLab a
 
 A secção de **Dashboard** apresenta uma visão analítica do projeto:
 
-- **Gantt Chart**:  
+### Gantt Chart
 
 Visualização temporal dos issues com base nas datas de milestone e de entrega.  
 Inclui **filtros avançados por**:
@@ -46,7 +46,7 @@ Inclui **filtros avançados por**:
 - **Work Packages**
 - **Assignees**
 
-- **Estatísticas Avançadas**: 
+### Estatísticas Avançadas 
 
 Indicadores de desempenho do projeto, como:
 
