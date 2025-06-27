@@ -3,42 +3,65 @@ const router = express.Router();
 const pool = require("../services/db");
 const axios = require("axios");
 
+async function tryProjectConfigs(teamId, channelId, callback) {
+  const result = await pool.query(
+    `SELECT gitlab_project_id, gitlab_token, gitlab_host FROM projects_config
+     WHERE teams_team_id = $1 AND teams_channel_id = $2
+     ORDER BY updated_at DESC`,
+    [teamId, channelId]
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error("Configuração não encontrada.");
+  }
+
+  let lastError = null;
+  for (const row of result.rows) {
+    try {
+      return await callback(row.gitlab_project_id, row.gitlab_token, row.gitlab_host);
+    } catch (err) {
+      lastError = err;
+      continue;
+    }
+  }
+
+  throw lastError || new Error("Todas as configurações falharam.");
+}
+
 // Endpoint para carregar dados do Gantt Chart
 router.get("/gantt-data", async (req, res) => {
   const { teamId, channelId } = req.query;
   console.log("🔍 Gantt API chamada:", { teamId, channelId });
 
   try {
-    // Buscar configuração do projeto GitLab
-    const result = await pool.query(
-      `SELECT gitlab_project_id, gitlab_token
-       FROM projects_config
-       WHERE teams_team_id = $1 AND teams_channel_id = $2`,
-      [teamId, channelId]
+    const { gitlab_project_id, gitlab_token, gitlab_host } = await tryProjectConfigs(
+      teamId, channelId,
+      async (projectId, token, host) => {
+        const baseUrl = `https://${host}`;
+        await axios.get(`${baseUrl}/api/v4/projects/${projectId}`, {
+          headers: { "PRIVATE-TOKEN": token }
+        });
+        return { gitlab_project_id: projectId, gitlab_token: token, gitlab_host: host };
+      }
     );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: "Configuração não encontrada." });
-    }
-
-    const { gitlab_project_id, gitlab_token } = result.rows[0];
+    const baseUrl = `https://${gitlab_host}`;
     const headers = { "PRIVATE-TOKEN": gitlab_token };
 
-    // Buscar info do projeto para obter o web_url
+    // Obter info do projeto para web_url
     const projectResponse = await axios.get(
-      `https://gitlab.com/api/v4/projects/${gitlab_project_id}`,
+      `${baseUrl}/api/v4/projects/${gitlab_project_id}`,
       { headers }
     );
-    const projectWebUrl = projectResponse.data.web_url; // ✅ Aqui obtemos o web_url correto
+    const projectWebUrl = projectResponse.data.web_url;
 
-    // Puxar todos os issues via paginação
     let allIssues = [];
     let page = 1;
     let moreIssues = true;
 
     while (moreIssues) {
       const response = await axios.get(
-        `https://gitlab.com/api/v4/projects/${gitlab_project_id}/issues`,
+        `${baseUrl}/api/v4/projects/${gitlab_project_id}/issues`,
         {
           headers,
           params: {
@@ -50,25 +73,21 @@ router.get("/gantt-data", async (req, res) => {
 
       const issuesPage = response.data;
       allIssues = allIssues.concat(issuesPage);
-
-      if (issuesPage.length < 100) {
-        moreIssues = false;
-      } else {
-        page++;
-      }
+      moreIssues = issuesPage.length === 100;
+      page++;
     }
 
-    // Preparar issues para o Gantt
+    // Formatar issues para o Gantt
     const issuesFormatted = allIssues.map(issue => {
       const startDate = issue.created_at || issue.updated_at;
       const endDate = issue.due_date || null;
 
       return {
         id: issue.id,
-        iid: issue.iid, // ⚡️ Importante! iid para montar o link
+        iid: issue.iid,
         name: `${issue.title} (${issue.assignee?.name || "No Assignee"})`,
-        startDate: startDate,
-        endDate: endDate,
+        startDate,
+        endDate,
         closed_at: issue.closed_at || null,
         milestone: issue.milestone ? { title: issue.milestone.title } : null,
         assignees: issue.assignees || [],
@@ -76,14 +95,13 @@ router.get("/gantt-data", async (req, res) => {
       };
     });
 
-    // ✅ Agora devolve um OBJETO completo
     res.json({
       issues: issuesFormatted,
       projectWebUrl: projectWebUrl
     });
 
   } catch (err) {
-    console.error("❌ Erro no endpoint Gantt:", err.message);
+    console.error("Erro no endpoint Gantt:", err.response?.data || err.message);
     res.status(500).json({ error: "Erro ao buscar dados para Gantt." });
   }
 });

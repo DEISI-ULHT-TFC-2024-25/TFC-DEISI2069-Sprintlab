@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
 
-// 📄 Endpoint para verificar o role
+// Endpoint para verificar o role
 router.post("/verify-role", async (req, res) => {
     try {
       const { userPrincipalName } = req.body;
   
-      console.log("[Teams] Requisição recebida para verificar role:", userPrincipalName); // 👈 log da entrada
+      console.log("[Teams] Requisição recebida para verificar role:", userPrincipalName); // log da entrada
   
       if (!userPrincipalName) {
         console.warn("[Teams] Erro: userPrincipalName não fornecido.");
@@ -17,7 +17,7 @@ router.post("/verify-role", async (req, res) => {
       const isOwner = owners.includes(normalizedUser);
       const role = isOwner ? "owner" : "member";
   
-      console.log(`[Teams] Utilizador ${userPrincipalName} é ${role}.`); // 👈 log do resultado
+      console.log(`[Teams] Utilizador ${userPrincipalName} é ${role}.`); // log do resultado
   
       return res.json({ role });
     } catch (err) {

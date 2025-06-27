@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
   <title>Dashboard Gantt Chart + Statistics</title>
   <script src="https://res.cdn.office.net/teams-js/2.12.0/js/MicrosoftTeams.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
 
   <style>
     body {
@@ -67,12 +69,12 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  max-height: 600px; /* 👉 Limite vertical: 600px visível */
-  overflow-y: auto;  /* 👉 Scroll vertical ativado */
-  overflow-x: hidden; /* 👉 Sem scroll horizontal */
+  max-height: 600px; 
+  overflow-y: auto; 
+  overflow-x: hidden; 
   padding: 10px;
   box-sizing: border-box;
-  background: #1b1d1f; /* 👉 Opcional: cor de fundo */
+  background: #1b1d1f; 
   border-radius: 10px;
 }
 
@@ -146,7 +148,7 @@
     .charts-and-stats {
     display: flex;
     justify-content: center;
-    align-items: stretch; /* <- estica para ter mesma altura */
+    align-items: stretch; 
     flex-wrap: wrap;
     gap: 30px;
     max-width: 1000px;
@@ -160,28 +162,29 @@
   flex: 0 0 60%;
   display: flex;
   flex-direction: column;
-  align-items: center; /* <- centra horizontalmente */
+  align-items: center; 
   min-width: 300px;
 }
 
-  .stats {
-    flex: 0 0 35%; /* <- ocupa 35% */
-    display: flex;
-    flex-direction: column;
-    justify-content: center; /* <- centra estatísticas */
-    min-width: 250px;
-  }
+.stats {
+  flex: 0 0 35%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; 
+  min-width: 250px;
+  min-height: 200px; 
+}
 
   .chart-container {
   width: 100%; 
-  max-width: 450px; /* <- limita a largura máxima dos gráficos */
-  margin: 20px 0; /* <- espaçamento entre gráficos */
+  max-width: 450px; 
+  margin: 20px 0; 
 }
 
 .chart-container canvas {
   width: 100% !important;
   height: auto !important;
-  max-height: none; /* <- tira limite de altura forçado */
+  max-height: none; 
 }
 
     .stat {
@@ -208,7 +211,6 @@
       scrollbar-color: #8B88F8 transparent;
     }
 
-    /* Scroll bonito para Webkit browsers (Chrome, Edge, etc.) */
     html::-webkit-scrollbar,
     body::-webkit-scrollbar,
     .gantt-grid::-webkit-scrollbar,
@@ -287,21 +289,12 @@
 
   <div class="gantt-grid" id="ganttGrid"></div>
 
-  <div class="section-title">Issues Overview</div>
+<div class="section-title">Release Quality Dashboard</div>
 
-  <div class="charts-and-stats">
-    <div class="charts">
-      <div class="chart-container">
-        <canvas id="statusChart"></canvas>
-      </div>
-      <div class="chart-container">
-        <canvas id="phaseChart"></canvas>
-      </div>
-    </div>
-    <div class="stats" id="statsPanel">
-      <!-- Estatísticas preenchidas por JS -->
-    </div>
-  </div>
+<div class="charts-and-stats">
+  <div class="charts" id="releaseCharts"></div>
+  <div class="stats" id="releaseStats"></div>
+</div>
 
 </body>
 </html>
@@ -309,27 +302,27 @@
 <script>
   let allIssuesRaw = [];
 let allTasks = [];
-let projectWebUrl = ""; // <- Aqui nova variável global
+let projectWebUrl = ""; 
 const viewModeSelect = document.getElementById('viewMode');
 
 async function loadData() {
   try {
-    console.log("🔵 Starting loadData()");
+    console.log("Starting loadData()");
 
     await microsoftTeams.app.initialize();
-    console.log("✅ Teams SDK initialized");
+    console.log("Teams SDK initialized");
 
     const context = await microsoftTeams.app.getContext();
-    console.log("✅ Context loaded:", context);
+    console.log("Context loaded:", context);
 
     const teamId = context.team.groupId;
     const channelId = context.channel?.id || '';
 
     const res = await fetch(`/gitlab-dashboards/gantt-data?teamId=${teamId}&channelId=${channelId}`);
-    console.log("✅ Fetch response:", res);
+    console.log("Fetch response:", res);
 
     const result = await res.json();
-    console.log("✅ JSON parsed:", result);
+    console.log("JSON parsed:", result);
 
     allIssuesRaw = result.issues;
     allTasks = allIssuesRaw.map(issue => {
@@ -342,12 +335,12 @@ async function loadData() {
     });
 
     projectWebUrl = result.projectWebUrl || "";
-    console.log("✅ Project Web URL:", projectWebUrl);
+    console.log("Project Web URL:", projectWebUrl);
 
     prepareViewModes();
     renderView();
   } catch (error) {
-    console.error("🔴 Error initializing Teams SDK or fetching data:", error);
+    console.error("Error initializing Teams SDK or fetching data:", error);
     document.getElementById("ganttGrid").innerHTML = "<p class='no-tasks-message'>Error loading Gantt chart.</p>";
   }
 }
@@ -360,32 +353,111 @@ function prepareViewModes() {
   const openTasks = allTasks.filter(task => !task.closed_at);
 
   const milestonesSet = new Set();
+  const assigneesSet = new Set();
+
   openTasks.forEach(task => {
-    if (task.milestone && task.milestone.title) {
+    if (task.milestone?.title) {
       milestonesSet.add(task.milestone.title);
     } else {
-      milestonesSet.add('No Milestone'); // caso não tenha milestone
+      milestonesSet.add("No WP");
+    }
+
+    if (task.assignees?.length) {
+      task.assignees.forEach(a => assigneesSet.add(a.name));
+    } else {
+      assigneesSet.add("Unassigned");
     }
   });
 
   const milestones = Array.from(milestonesSet).sort();
+  const assignees = Array.from(assigneesSet).sort();
 
   viewModeSelect.innerHTML = "";
 
-  // Adicionar "All Milestones"
-  const allOption = document.createElement('option');
-  allOption.value = "all";
-  allOption.textContent = "All Milestones";
-  viewModeSelect.appendChild(allOption);
-
-  milestones.forEach(milestone => {
-    const option = document.createElement('option');
-    option.value = milestone;
-    option.textContent = milestone;
-    viewModeSelect.appendChild(option);
+  const optGroupMilestones = document.createElement("optgroup");
+  optGroupMilestones.label = "Group by Work Package";
+  const allOption = document.createElement("option");
+  allOption.value = "group:wp:all";
+  allOption.textContent = "📦 All Work Packages";
+  optGroupMilestones.appendChild(allOption);
+  milestones.forEach(title => {
+    const option = document.createElement("option");
+    option.value = `group:wp:${title}`;
+    option.textContent = `📦 ${title}`;
+    optGroupMilestones.appendChild(option);
   });
+  viewModeSelect.appendChild(optGroupMilestones);
+
+  const optGroupAssignees = document.createElement("optgroup");
+  optGroupAssignees.label = "Group by Assignee";
+  const allAssigneeOption = document.createElement("option");
+  allAssigneeOption.value = "group:assignee:all";
+  allAssigneeOption.textContent = "👤 All Assignees";
+  optGroupAssignees.appendChild(allAssigneeOption);
+  assignees.forEach(name => {
+    const option = document.createElement("option");
+    option.value = `group:assignee:${name}`;
+    option.textContent = `👤 ${name}`;
+    optGroupAssignees.appendChild(option);
+  });
+  viewModeSelect.appendChild(optGroupAssignees);
 }
 
+
+function renderTimeAxis(startView, endView) {
+  const ganttGrid = document.getElementById("ganttGrid");
+
+  const createAxisRow = () => {
+    const axisRow = document.createElement("div");
+    axisRow.style.display = "flex";
+    axisRow.style.justifyContent = "space-between";
+    axisRow.style.paddingLeft = "250px";
+    axisRow.style.fontSize = "11px";
+    axisRow.style.color = "#aaa";
+    axisRow.style.marginBottom = "5px";
+    return axisRow;
+  };
+
+  const totalDays = Math.ceil((endView - startView) / (1000 * 60 * 60 * 24));
+  const numMarkers = 5;
+  const intervalDays = Math.max(1, Math.floor(totalDays / (numMarkers - 1)));
+
+  const dates = [];
+  for (let i = 0; i < numMarkers; i++) {
+    const markerDate = new Date(startView.getTime() + i * intervalDays * 24 * 60 * 60 * 1000);
+    dates.push(markerDate);
+  }
+
+  const topAxis = createAxisRow();
+  dates.forEach(date => {
+    const marker = document.createElement("div");
+    marker.textContent = date.toLocaleDateString('en-GB');
+    marker.style.flex = "1";
+    marker.style.textAlign = "center";
+    topAxis.appendChild(marker);
+  });
+  ganttGrid.prepend(topAxis);
+
+  const bottomAxis = createAxisRow();
+  dates.forEach(date => {
+    const marker = document.createElement("div");
+    marker.textContent = date.toLocaleDateString('en-GB');
+    marker.style.flex = "1";
+    marker.style.textAlign = "center";
+    bottomAxis.appendChild(marker);
+  });
+  ganttGrid.appendChild(bottomAxis);
+}
+
+function getStartDate(tasks) {
+  const allEndDates = tasks.map(task => new Date(task.endDate));
+  return new Date(Math.min(...allEndDates.map(d => d.getTime())));
+}
+
+function getEndDate(tasks) {
+  const allEndDates = tasks.map(task => new Date(task.endDate));
+  return new Date(Math.max(...allEndDates.map(d => d.getTime())));
+}
 
 
   
@@ -393,41 +465,74 @@ function renderView() {
   const ganttGrid = document.getElementById("ganttGrid");
   ganttGrid.innerHTML = "";
 
-  const viewMode = viewModeSelect.value;
-
-  // Só abertas
+  const viewValue = viewModeSelect.value;
   const openTasks = allTasks.filter(task => !task.closed_at);
 
   let tasksToRender = [];
 
-  if (viewMode === "all") {
-    tasksToRender = openTasks;
-  } else {
-    tasksToRender = openTasks.filter(task => {
-      if (task.milestone && task.milestone.title) {
-        return task.milestone.title === viewMode;
-      }
-      return viewMode === 'No Milestone'; // caso sem milestone
-    });
+  // Filtro por Work Package (milestone)
+  if (viewValue.startsWith("group:wp:")) {
+    const selected = viewValue.replace("group:wp:", "");
+    tasksToRender = selected === "all"
+      ? openTasks
+      : openTasks.filter(task => (task.milestone?.title || "No WP") === selected);
   }
 
-  if (tasksToRender.length === 0) {
-    ganttGrid.innerHTML = "<p class='no-tasks-message'>No open issues for this milestone.</p>";
+  // Filtro por Assignee
+  else if (viewValue.startsWith("group:assignee:")) {
+    const selected = viewValue.replace("group:assignee:", "");
+    tasksToRender = selected === "all"
+      ? openTasks
+      : openTasks.filter(task => {
+          if (!task.assignees || task.assignees.length === 0) return selected === "Unassigned";
+          return task.assignees.some(a => a.name === selected);
+        });
+  }
+
+  // Verificação de segurança
+  if (!tasksToRender || tasksToRender.length === 0) {
+    ganttGrid.innerHTML = "<p class='no-tasks-message'>No tasks to display for this view.</p>";
+    document.getElementById("releaseCharts").innerHTML = "";
     return;
   }
 
-  const allEndDates = tasksToRender.map(task => new Date(task.endDate));
-  const startView = new Date(Math.min(...allEndDates.map(d => d.getTime())));
-  const endView = new Date(Math.max(...allEndDates.map(d => d.getTime())));
+  // Render Gantt Chart
+  try {
+    renderGantt(tasksToRender, getStartDate(tasksToRender), getEndDate(tasksToRender));
+  } catch (ganttError) {
+    console.error("Erro ao renderizar o Gantt Chart:", ganttError);
+    ganttGrid.innerHTML = "<p class='no-tasks-message'>Error rendering Gantt chart.</p>";
+  }
 
-  renderGantt(tasksToRender, startView, endView);
-  generateChartsAndStats(startView, endView);
+  // Burndown Chart com base nas tasks filtradas
+  try {
+    const chartsContainer = document.getElementById("releaseCharts");
+    if (chartsContainer) {
+      chartsContainer.innerHTML = ""; // limpar burndown anterior
+      generateBurndownChart(tasksToRender, chartsContainer);
+    }
+  } catch (err) {
+    console.error("Erro ao gerar burndown chart:", err);
+  }
+
+  // Painel geral do projeto 
+  try {
+    const statsContainer = document.getElementById("releaseStats");
+    if (statsContainer) {
+      statsContainer.innerHTML = "";
+      generateReleaseDashboard(allTasks);
+    }
+  } catch (err) {
+    console.error("Erro ao gerar painel de release:", err);
+  }
+
+  generateAdvancedStats(tasksToRender);
 }
-
   
 function renderGantt(tasks, startView, endView) {
   const ganttGrid = document.getElementById("ganttGrid");
   ganttGrid.innerHTML = "";
+  ganttGrid.style.position = "relative";
 
   const openTasks = tasks.filter(task => !task.closed_at);
   openTasks.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
@@ -436,179 +541,139 @@ function renderGantt(tasks, startView, endView) {
   const endViewTime = endView.getTime();
   const totalViewDuration = endViewTime - startViewTime;
 
-  openTasks.forEach(task => {
-    const taskEnd = new Date(task.endDate);
-    if (taskEnd < startView || taskEnd > endView) return;
+  const timelineMarkers = [
+    new Date(),
+    new Date(startView.getFullYear(), startView.getMonth(), 1)
+  ];
 
-    const row = document.createElement("div");
-    row.className = "gantt-row";
+  timelineMarkers.forEach(markerDate => {
+    if (markerDate < startView || markerDate > endView) return;
 
-    const label = document.createElement("div");
-    label.className = "gantt-label";
-
-    // ✅ Cria link dinâmico para cada issue
-    const link = document.createElement("a");
-    if (projectWebUrl) {
-      link.href = `${projectWebUrl}/-/issues/${task.iid}`;
-    } else {
-      link.href = "#"; // fallback caso projectWebUrl não tenha carregado
-    }
-    link.target = "_blank";
-    link.textContent = task.name;
-    link.style.color = "#ccc";
-    link.style.textDecoration = "underline";
-    link.style.fontWeight = "bold";
-
-    label.appendChild(link);
-
-    const barContainer = document.createElement("div");
-    barContainer.className = "gantt-bar-container";
-
-    const miniBar = document.createElement("div");
-    miniBar.style.position = "absolute";
-    miniBar.style.width = "30px";
-    miniBar.style.height = "10px";
-    miniBar.style.backgroundColor = "#6264A7";
-    miniBar.style.borderRadius = "3px";
-    miniBar.style.top = "50%";
-    miniBar.style.transform = "translateY(-50%)";
-    miniBar.style.transition = "all 0.5s ease";
-    miniBar.style.opacity = "0";
-
-    const taskEndTime = taskEnd.getTime();
-    const positionPercent = ((taskEndTime - startViewTime) / totalViewDuration) * 100;
-    miniBar.style.left = `calc(${positionPercent}% - 15px)`;
-
-    miniBar.title = `Task: ${task.name}\nEnd: ${taskEnd.toLocaleDateString('en-GB')}`;
-
-    barContainer.appendChild(miniBar);
-    row.appendChild(label);
-    row.appendChild(barContainer);
-    ganttGrid.appendChild(row);
-
-    setTimeout(() => {
-      miniBar.style.opacity = "1";
-    }, 50);
+    const marker = document.createElement("div");
+    marker.className = "gantt-timeline-marker";
+    const posPercent = ((markerDate.getTime() - startViewTime) / totalViewDuration) * 100;
+    marker.style.left = `${posPercent}%`;
+    ganttGrid.appendChild(marker);
   });
+
+  const viewMode = document.getElementById("viewMode").value;
+
+  if (viewMode !== "group:wp:all") {
+    const groupedByMilestone = {};
+    openTasks.forEach(task => {
+      const wpName = task.milestone?.title || "No WP";
+      if (!groupedByMilestone[wpName]) groupedByMilestone[wpName] = [];
+      groupedByMilestone[wpName].push(task);
+    });
+
+    Object.entries(groupedByMilestone).forEach(([wpTitle, tasksInWP]) => {
+      const header = document.createElement("div");
+      header.textContent = `📦 ${wpTitle}`;
+      header.style.fontWeight = "bold";
+      header.style.color = "#8B88F8";
+      header.style.margin = "10px 0 5px 250px";
+      ganttGrid.appendChild(header);
+
+      tasksInWP.forEach(task => {
+        renderGanttRow(task, startViewTime, totalViewDuration, ganttGrid, wpTitle);
+      });
+    });
+  } else {
+    openTasks.forEach(task => {
+      renderGanttRow(task, startViewTime, totalViewDuration, ganttGrid, task.milestone?.title || "No WP");
+    });
+  }
+
+  renderTimeAxis(startView, endView);
 }
 
+function renderGanttRow(task, startViewTime, totalViewDuration, ganttGrid, wpTitle) {
+  const milestoneStart = task.milestoneStartDate ? new Date(task.milestoneStartDate) : new Date(task.startDate);
+  const taskEnd = new Date(task.endDate);
 
+  if (milestoneStart < startViewTime) milestoneStart.setTime(startViewTime);
+  if (taskEnd > startViewTime + totalViewDuration) taskEnd.setTime(startViewTime + totalViewDuration);
 
-  
-function generateChartsAndStats(startView, endView) {
-  const startViewTime = startView.getTime();
-  const endViewTime = endView.getTime();
+  const row = document.createElement("div");
+  row.className = "gantt-row";
 
-  const issuesInView = allIssuesRaw.filter(issue => {
-    if (!issue.endDate) return false;
-    const end = new Date(issue.endDate).getTime();
-    return end >= startViewTime && end <= endViewTime;
-  });
+  const label = document.createElement("div");
+  label.className = "gantt-label";
 
-  const openIssues = issuesInView.filter(issue => !issue.closed_at);
-  const closedIssues = issuesInView.filter(issue => issue.closed_at);
+  const link = document.createElement("a");
+  link.href = projectWebUrl ? `${projectWebUrl}/-/issues/${task.iid}` : "#";
+  link.target = "_blank";
+  link.textContent = task.name;
+  link.style.color = "#ccc";
+  link.style.textDecoration = "underline";
+  link.style.fontWeight = "bold";
+  label.appendChild(link);
 
-  document.getElementById('statusChart').remove();
-  document.getElementById('phaseChart').remove();
+  const barContainer = document.createElement("div");
+  barContainer.className = "gantt-bar-container";
 
-  const chartsContainer = document.querySelector('.charts');
-  chartsContainer.innerHTML = `
-    <div class="chart-container"><canvas id="statusChart"></canvas></div>
-    <div class="chart-container"><canvas id="phaseChart"></canvas></div>
-  `;
+  const miniBar = document.createElement("div");
+  miniBar.style.position = "absolute";
+  miniBar.style.height = "10px";
+  miniBar.style.backgroundColor = "#6264A7";
+  miniBar.style.borderRadius = "3px";
+  miniBar.style.top = "50%";
+  miniBar.style.transform = "translateY(-50%)";
+  miniBar.style.transition = "all 0.5s ease";
+  miniBar.style.opacity = "0";
 
-  // ✅ Doughnut status chart (Open x Closed)
-  new Chart(document.getElementById('statusChart').getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Open', 'Closed'],
-      datasets: [{
-        data: [openIssues.length, closedIssues.length],
-        backgroundColor: ['#6264A7', '#555'],
-        borderColor: '#1b1d1f',
-        borderWidth: 2
-      }]
-    },
-    options: { 
-      plugins: { 
-        legend: { labels: { color: '#fff' } } 
-      } 
-    }
-  });
+  const milestoneStartTime = milestoneStart.getTime();
+  const taskEndTime = taskEnd.getTime();
 
-  // ✅ Bar chart agrupado por Milestones
-  const openMilestoneCounts = {};
-  const closedMilestoneCounts = {};
+  const leftPercent = ((milestoneStartTime - startViewTime) / totalViewDuration) * 100;
+  const widthPercent = ((taskEndTime - milestoneStartTime) / totalViewDuration) * 100;
 
-  issuesInView.forEach(issue => {
-    const milestone = issue.milestone ? issue.milestone.title : 'No Milestone'; // 👉 corrige!
+  miniBar.style.left = `${leftPercent}%`;
+  miniBar.style.width = `${Math.max(widthPercent, 0.5)}%`;
 
-    if (!issue.closed_at) {
-      openMilestoneCounts[milestone] = (openMilestoneCounts[milestone] || 0) + 1;
-    } else {
-      closedMilestoneCounts[milestone] = (closedMilestoneCounts[milestone] || 0) + 1;
-    }
-  });
+  miniBar.title = `Task: ${task.name}\nStart: ${milestoneStart.toLocaleDateString('en-GB')}\nEnd: ${taskEnd.toLocaleDateString('en-GB')}\nWP: ${wpTitle}`;
 
-  const milestones = Array.from(new Set([...Object.keys(openMilestoneCounts), ...Object.keys(closedMilestoneCounts)])).sort();
+  barContainer.appendChild(miniBar);
+  row.appendChild(label);
+  row.appendChild(barContainer);
+  ganttGrid.appendChild(row);
 
-  new Chart(document.getElementById('phaseChart').getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: milestones,
-      datasets: [
-        {
-          label: 'Open Issues',
-          data: milestones.map(m => openMilestoneCounts[m] || 0),
-          backgroundColor: '#6264A7'
-        },
-        {
-          label: 'Closed Issues',
-          data: milestones.map(m => closedMilestoneCounts[m] || 0),
-          backgroundColor: '#555'
-        }
-      ]
-    },
-    options: {
-      scales: {
-        x: { 
-          ticks: { color: '#fff' },
-          title: { display: true, text: 'Milestone', color: '#fff' }
-        },
-        y: { 
-          beginAtZero: true,
-          ticks: { color: '#fff', stepSize: 1 },
-          title: { display: true, text: 'Number of Issues', color: '#fff' }
-        }
-      },
-      plugins: { 
-        legend: { labels: { color: '#fff' } },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              return `${context.dataset.label}: ${context.raw}`;
-            }
-          }
-        }
-      }
-    }
-  });
+  setTimeout(() => {
+    miniBar.style.opacity = "1";
+  }, 50);
+}
 
-  generateAdvancedStats(issuesInView);
+function createChartContainer(id) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "chart-container";
+  const canvas = document.createElement("canvas");
+  canvas.id = id;
+  wrapper.appendChild(canvas);
+  return wrapper;
+}
+
+function generateReleaseDashboard(issues) {
+  const chartsContainer = document.getElementById('releaseCharts');
+  const statsContainer = document.getElementById('releaseStats');
+  chartsContainer.innerHTML = "";
+  statsContainer.innerHTML = "";
+
+  generateLabelCompletionChart(issues, chartsContainer);
+  generateBurndownChart(issues, chartsContainer);
+  evaluateProductionReadiness(issues, statsContainer);
 }
 
 function generateAdvancedStats(issuesInView) {
-  const advancedStatsPanel = document.getElementById('statsPanel');
+  const advancedStatsPanel = document.getElementById('releaseStats');
 
-  // Agora usamos allIssuesRaw para ver tudo (não filtrado pela vista)
   const openIssues = allIssuesRaw.filter(issue => !issue.closed_at);
   const closedIssues = allIssuesRaw.filter(issue => issue.closed_at);
   const totalIssues = allIssuesRaw.length;
-
-  // ➡️ Nova estatística: Issues sem Milestone
   const issuesWithoutMilestone = allIssuesRaw.filter(issue => !issue.milestone || !issue.milestone.title).length;
 
-  advancedStatsPanel.innerHTML = `
+  const wrapper = document.createElement("div");
+  wrapper.className = "chart-container";
+  wrapper.innerHTML = `
     <div class="stat">
       <div class="stat-value">${openIssues.length}</div>
       <div class="stat-label">Open Issues</div>
@@ -626,7 +691,175 @@ function generateAdvancedStats(issuesInView) {
       <div class="stat-label">Issues without Milestone</div>
     </div>
   `;
+
+  advancedStatsPanel.appendChild(wrapper);
 }
+
+try {
+  const statsContainer = document.getElementById("releaseStats");
+  if (statsContainer) {
+    statsContainer.innerHTML = "";
+    generateReleaseDashboard(allTasks);
+    generateAdvancedStats(allTasks); 
+  }
+} catch (err) {
+  console.error("Erro ao gerar painel de release:", err);
+}
+
+function generateLabelCompletionChart(issues, container) {
+  const labelMap = {};
+  issues.forEach(issue => {
+    (issue.labels || []).forEach(label => {
+      if (!labelMap[label]) labelMap[label] = { total: 0, closed: 0 };
+      labelMap[label].total++;
+      if (issue.closed_at) labelMap[label].closed++;
+    });
+  });
+
+  const labels = Object.keys(labelMap);
+  const values = labels.map(l => Math.round((labelMap[l].closed / labelMap[l].total) * 100));
+
+  const wrapper = document.createElement('div');
+  wrapper.className = "chart-container";
+  const canvas = document.createElement('canvas');
+  canvas.id = "labelChart";
+  wrapper.appendChild(canvas);
+  container.appendChild(wrapper);
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '% Fechado por Label',
+        data: values,
+        backgroundColor: '#8B88F8'
+      }]
+    },
+    options: {
+      plugins: { legend: { labels: { color: '#fff' } } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { color: '#fff' }
+        },
+        x: { ticks: { color: '#fff' } }
+      }
+    }
+  });
+}
+
+function generateBurndownChart(issues, container) {
+  // Agrupar por data de criação e fecho
+  const dailyStatus = {};
+
+  issues.forEach(issue => {
+    const created = new Date(issue.created_at).toISOString().split('T')[0];
+    const closed = issue.closed_at ? new Date(issue.closed_at).toISOString().split('T')[0] : null;
+
+    if (!dailyStatus[created]) dailyStatus[created] = { created: 0, closed: 0 };
+    dailyStatus[created].created++;
+
+    if (closed) {
+      if (!dailyStatus[closed]) dailyStatus[closed] = { created: 0, closed: 0 };
+      dailyStatus[closed].closed++;
+    }
+  });
+
+  const dates = Object.keys(dailyStatus).sort();
+  const total = issues.length;
+  const openRemaining = [];
+
+  let remaining = total;
+
+  dates.forEach(date => {
+    remaining -= dailyStatus[date].closed;
+    openRemaining.push(remaining);
+  });
+
+  const existing = document.getElementById("burndownChart");
+  if (existing) existing.remove();
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "chart-container";
+  const canvas = document.createElement("canvas");
+  canvas.id = "burndownChart";
+  wrapper.appendChild(canvas);
+  container.appendChild(wrapper);
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'Issues restantes (burndown)',
+        data: openRemaining,
+        borderColor: "#8B88F8",
+        backgroundColor: "transparent",
+        tension: 0.2,
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        tooltip: { callbacks: {
+          label: ctx => `Restantes: ${ctx.raw}`
+        }}
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, title: { display: true, text: 'Data', color: '#fff' }},
+        y: { ticks: { color: '#fff' }, beginAtZero: true, title: { display: true, text: 'Issues abertas', color: '#fff' }}
+      }
+    }
+  });
+}
+
+
+function evaluateProductionReadiness(issues, container) {
+  const minorLabels = ['minor', 'documentation', 'non-blocking'];
+  const versions = {};
+
+  issues.forEach(issue => {
+    const version = issue.milestone?.title || 'No Version';
+    if (!versions[version]) {
+      versions[version] = { total: 0, closed: 0, openIssues: [] };
+    }
+
+    versions[version].total++;
+    if (issue.closed_at) {
+      versions[version].closed++;
+    } else {
+      versions[version].openIssues.push(issue);
+    }
+  });
+
+  Object.entries(versions).forEach(([version, data]) => {
+    const percentClosed = (data.closed / data.total) * 100;
+
+    const onlyMinorOpen = data.openIssues.every(issue =>
+      issue.labels && issue.labels.every(label =>
+        minorLabels.includes(label.toLowerCase())
+      )
+    );
+
+    const isReady = percentClosed >= 98 && onlyMinorOpen;
+
+    const box = document.createElement("div");
+    box.className = "stat";
+    box.style.background = isReady ? "#1c3d2e" : "#3d1c1c";
+
+    box.innerHTML = `
+      <div class="stat-value">${percentClosed.toFixed(1)}%</div>
+      <div class="stat-label">
+        Versão <strong>${version}</strong> ${isReady ? 'Pronta para Produção' : 'Bloqueada'}
+      </div>
+    `;
+
+    container.appendChild(box);
+  });
+}
+
 
   viewModeSelect.addEventListener('change', renderView);
   loadData();
