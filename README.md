@@ -1,4 +1,3 @@
-
 # Sprintlab
 
 **Sprintlab** é uma solução de integração entre o Microsoft Teams e o GitLab, desenvolvida para permitir a gestão de projetos de forma ágil e eficiente, através de uma interface moderna e intuitiva.  
@@ -17,7 +16,7 @@ Devido a protocolos de segurança definidos pela Microsoft Lusófona, apenas é 
 
 1. Aceder ao canal acima e **adicionar um separador** (tab) ao canal.
 2. Escolher o Sprintlab e preencher as informações necessárias:
-   - **Nome do Projeto GitLab**
+   - **URL da Instância GitLab**
    - **ID do Projeto GitLab**
    - **Token Privada de Acesso GitLab**  
      _(Nota: a Token Privada é um token de acesso pessoal, criado no GitLab, com permissões para ler e utilizar a API do GitLab.)_
@@ -40,14 +39,21 @@ Todas as ações realizadas na board refletem-se diretamente no projeto GitLab a
 A secção de **Dashboard** apresenta uma visão analítica do projeto:
 
 - **Gantt Chart**:  
-  Visualiza os issues abertos no tempo, permitindo uma gestão visual dos prazos e dependências.
 
-- **Estatísticas Avançadas**:  
-  Indicadores de desempenho do projeto, como:
-  - Número de issues abertas e fechadas
-  - Número total de issues
-  - Issues sem milestones
-  - Evolução de issues e milestones ao longo do tempo
+Visualização temporal dos issues com base nas datas de milestone e de entrega.  
+Inclui **filtros avançados por**:
+
+- **Work Packages**
+- **Assignees**
+
+- **Estatísticas Avançadas**: 
+
+Indicadores de desempenho do projeto, como:
+
+- Número de issues abertas e fechadas
+- Número total de issues
+- Issues sem milestones
+- Evolução de issues e milestones ao longo do tempo
 
 Estas ferramentas apoiam a **gestão estratégica do projeto**, fornecendo dados relevantes para tomada de decisão.
 
